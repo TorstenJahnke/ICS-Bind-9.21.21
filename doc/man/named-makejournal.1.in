@@ -1,0 +1,77 @@
+.\" Man page generated from reStructuredText
+.\" by the Docutils 0.22.4 manpage writer.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "NAMED-MAKEJOURNAL" "1" "@RELEASE_DATE@" "9.21.21" "BIND 9"
+.SH NAME
+named-makejournal \- create a journal from zone files
+.SH SYNOPSIS
+.sp
+\fBnamed\-makejournal\fP [\-hm] {origin} {oldfile} {newfile} [journal]
+.SH DESCRIPTION
+.sp
+\fBnamed\-makejournal\fP scans the contents of two zone files for
+the domain specified by \fBorigin\fP, compares them, and writes the
+differences into a journal file.  The resulting journal file could
+then be used by \fBnamed\fP \%<#\:std-iscman-named> to load the zone and provide incremental
+zone transfers.
+.sp
+Both \fBoldfile\fP and \fBnewfile\fP must be successfully loadable as zone
+databases, and \fBnewfile\fP must have a higher SOA serial number than
+\fBoldfile\fP\&.
+.sp
+If the optional argument \fBjournal\fP is not specified, then the journal
+file name will be formed by appending the extension \fB\&.jnl\fP to the
+zone file name specified as \fBoldfile\fP\&.
+.sp
+If the journal file already exists, then it will be applied to \fBoldfile\fP
+immediately after loading. The difference between the resulting zone and
+the one in \fBnewfile\fP will then be appended onto the end of the journal.
+This allows creation of journal files with multiple transactions, by
+running \fBnamed\-makejournal\fP multiple times, updating \fBnewfile\fP each
+time.
+.SH OPTIONS
+.INDENT 0.0
+.TP
+.B \-h
+Print a usage summary.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-m
+Enables memory usage debugging.
+.UNINDENT
+.SH SEE ALSO
+.sp
+\fBnamed(8)\fP \%<#\:std-iscman-named>, \fBnamed\-journalprint(1)\fP \%<#\:std-iscman-named-journalprint>, BIND 9 Administrator Reference Manual.
+.SH Author
+Internet Systems Consortium
+.SH Copyright
+2026, Internet Systems Consortium
+.\" End of generated man page.

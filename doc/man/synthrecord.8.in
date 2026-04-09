@@ -1,0 +1,153 @@
+.\" Man page generated from reStructuredText
+.\" by the Docutils 0.22.4 manpage writer.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "SYNTHRECORD" "8" "@RELEASE_DATE@" "9.21.21" "BIND 9"
+.SH NAME
+synthrecord \- dynamically synthesize PTR records
+.SH SYNOPSIS
+.sp
+\fBplugin query\fP \(dqsynthrecord.so\(dq [{ parameters }];
+.SH DESCRIPTION
+.sp
+\fBsynthrecord.so\fP is a query plugin module for \fBnamed\fP \%<#\:std-iscman-named>,
+enabling \fBnamed\fP \%<#\:std-iscman-named> to synthesize forward and reverse responses for
+non\-existent names in a zone.
+.sp
+This plugin can only configured inside a \fBzone\fP clause. The name
+of the zone affects the mode in which the plugin operates:  if
+the zone name ends with \(dqip6.arpa\(dq or \(dqin\-addr.arpa\(dq, then the plugin
+operates in \(dqreverse\(dq mode, and for any other zone name, it operates
+in \(dqforward\(dq mode.
+.sp
+In \(dqreverse\(dq mode, the module intercepts queries of type PTR. If no
+authoritative answer can be found in the zone database, and if the IP
+address encoded in the query name matches one of the prefixes or addresses
+specified in \fBallow\-synth\fP, then the module dynamically generates a
+response, constructed by concatenating the configured \fBprefix\fP, the IP
+address encoded in the query reverse name, and the configured \fBorigin\fP\&.
+.sp
+In \fBforward\fP mode, the module intercepts queries of type A or AAAA.
+If no authoritative answer can be found in the zone, and the query
+begins and ends with the configured \fBprefix\fP and \fBorigin\fP, and an
+IP address can be parsed from the part in between, then that IP address
+will be returned to the client.
+.sp
+Note: Synthesized responses are not signed, so the use of this module
+is incompatible with DNSSEC.
+.SH EXAMPLE
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+zone \(dq1.168.192.in\-addr.arpa.\(dq {
+    type primary;
+    file \(dq1.168.192.in\-addr.arpa.db\(dq;
+    plugin query \(dqsynthrecord\(dq {
+        prefix \(dqdynamic\-\(dq;
+        origin \(dqexample.\(dq;
+    };
+};
+
+zone \(dqe.f.a.c.ip6.arpa.\(dq {
+    type primary;
+    file \(dqe.f.a.c.ip6.arpa.db\(dq;
+    plugin query \(dqsynthrecord\(dq {
+        prefix \(dqdynamic\-\(dq;
+        origin \(dqexample.\(dq;
+    };
+};
+
+zone \(dqexample.\(dq {
+    type primary;
+    file \(dqexample.db\(dq;
+    plugin query \(dqsynthrecord\(dq {
+        prefix \(dqdynamic\-\(dq;
+        origin \(dqexample.\(dq;
+        allow\-synth { 192.168.1/24; cafe::/16; };
+        ttl 3600;
+    };
+};
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above configuration, a PTR query for the name
+\fB5.1.168.192.in\-addr.arpa\fP (representing the IPv4 address \fB192.168.1.5\fP)
+receives the synthesized response \fBdynamic\-192\-168\-1\-5.example.\fP\&. Hyphens
+replace dots in this address representation.
+.sp
+Similarly, a PTR query for the name
+\fBe.f.a.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.f.a.c.ip6.arpa\fP
+(representing the IPv6 address \fBcafe::cafe\fP) receives the synthesized
+response \(dqdynamic\-cafe\-\-cafe.example.\(dq In this format, hyphens replace
+colons; two consecutive hyphens are the same as two consecutive colons.
+Note, however, that a DNS label cannot begin or end with a hyphen;
+therefore, an address like \fB::1\fP would be represented as \fB0\-\-1\fP, and
+\fB2001:db8::\fP would be \fB2001\-db8\-\-0\fP\&.
+.sp
+Finally, an AAAA query for \fBdynamic\-cafe\-\-cafe.example\fP would
+receive a synthesized response with the IPv6 address \fBcafe::cafe\fP, and
+and an A query for \fBdynamic\-192\-168\-1\-5.example\fP would receive
+\fB192.168.1.5\fP\&.
+.SH PARAMETERS
+.INDENT 0.0
+.TP
+.B \fBprefix\fP
+Specifies the prefix of the synthesized name. It must be a single\-label
+name. This parameter is mandatory.
+.TP
+.B \fBorigin\fP
+Specifies the origin of the synthesized name. This may be the same as
+the zone origin, or a descendent. It cannot be below a delegation point.
+This parameter is mandatory for reverse zones, but when configured in
+forward mode, it defaults to the zone name.
+.TP
+.B \fBallow\-synth\fP
+This option is an address\-match list, which can be used to restrict
+response synthesis to certain addresses.  The default is \fBany\fP,
+meaning that in reverse mode, any address within the zone can receive
+a synthesized answer, and in forward mode, any name with a parseable
+address encoded in it will return that address in an A or AAAA answer.
+Note that in reverse mode, at least some of the addresses within the
+zone\(aqs namespace must be allowed; otherwise the plugin will be unable
+to synthesize any responses.
+.TP
+.B \fBttl\fP
+Specifies the TTL of the synthesized resource record in the answer
+section. The default is \fB300\fP\&.
+.UNINDENT
+.SH SEE ALSO
+.sp
+BIND 9 Administrator Reference Manual.
+.SH Author
+Internet Systems Consortium
+.SH Copyright
+2026, Internet Systems Consortium
+.\" End of generated man page.
